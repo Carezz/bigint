@@ -25,6 +25,9 @@ typedef uint64_t bigint_double;
 #define BIGINT_BIGENDIAN 1
 #define BIGINT_LITTLEENDIAN 0 
 
+/* Algorithm-specific (thresholds measured in bits)*/
+#define BIGINT_KARATSUBA_THRESHOLD 1024
+
 /* Bytes in a limb */
 #define BIL (sizeof(bigint_limb))
 
@@ -122,3 +125,11 @@ int bigint_export_bytes(bigint* n, uint8_t* buf, size_t buflen, int format);
 */
 int bigint_add(bigint* c, bigint* a, bigint* b);
 int bigint_sub(bigint* c, bigint* a, bigint* b);
+
+/*
+  Multiplication & Squaring
+  C = A * B
+  C = A^2
+*/
+int bigint_mul(bigint* c, bigint* a, bigint* b);
+int bigint_sqr(bigint*c, bigint* a, bigint* b);

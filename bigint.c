@@ -531,3 +531,64 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 
 	return bigint_uadd(c, a, b);
 }
+
+
+static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
+{
+	bigint_limb carry = 0;
+	size_t i, j;
+
+	for (i = 0; i < a->len; i++)
+	{
+		bigint_limb* al = a->limbs;
+		bigint_limb* bl = b->limbs;
+		bigint_limb* cl = c->limbs;
+
+		for (j = 0; j < b->len; j++)
+		{
+			bigint_double result;
+
+			result = ((bigint_double)al[i] * bl[j]) + carry;
+			carry = result >> BiIL;
+			cl[j + i] += (bigint_limb)result;
+			c->len++;
+		}
+	}
+
+	if (carry != 0)
+	{
+		c->limbs[j + i + 1] = carry;
+		c->len++;
+	}
+	return BIGINT_SUCCESS;
+}
+
+static int bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
+{
+	// to do...
+	return BIGINT_SUCCESS;
+}
+int bigint_mul(bigint* c, bigint* a, bigint* b)
+{
+	if (c == NULL || a == NULL || b == NULL)
+		return BIGINT_ERR_INVALID_ARGS;
+
+	int r;
+
+	if ((r = bigint_alloc(c, a->len + b->len)) < 0)
+		return r;
+
+	if ((a->len * BiIL) > BIGINT_KARATSUBA_THRESHOLD
+	 || (b->len * BiIL) > BIGINT_KARATSUBA_THRESHOLD)
+		r = bigint_karatsuba_mul(c, a, b);
+	else
+		r = bigint_longhand_mul(c, a, b);
+
+	c->sign = a->sign * b->sign;
+	return r;
+}
+
+int bigint_sqr(bigint* c, bigint* a, bigint* b)
+{
+	return BIGINT_SUCCESS;
+}

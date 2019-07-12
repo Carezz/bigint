@@ -16,9 +16,9 @@ int main()
     r = bigint_import_bytes(&b, buf, 12, BIGINT_LITTLEENDIAN);
 	r = bigint_add(&c, &a, &b);*/
 
-	bigint_set_limb(&a, 5);
-	bigint_set_limb(&b, -3);
-	int r = bigint_sub(&c, &a, &b);
+	bigint_set_limb(&a, 500);
+	bigint_set_limb(&b, 795275);
+	int r = bigint_mul(&c, &a, &b);
 	int ch = getchar();
 	bigint_free(&a);
 	bigint_free(&b);
