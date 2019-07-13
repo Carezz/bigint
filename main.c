@@ -9,16 +9,18 @@ int main()
 	bigint_init(&b);
 	bigint_init(&c);
 
-	/*uint8_t buf[12] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c};
-	uint8_t buf2[12] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c};
+	uint8_t buf[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	bigint_import_bytes(&a, buf, 8, BIGINT_BIGENDIAN);
 
-	int r = bigint_import_bytes(&a, buf, 12, BIGINT_LITTLEENDIAN);
-    r = bigint_import_bytes(&b, buf, 12, BIGINT_LITTLEENDIAN);
-	r = bigint_add(&c, &a, &b);*/
+	bigint_set_limb(&b, 1);
+	int r = bigint_add(&c, &a, &b);
 
-	bigint_set_limb(&a, 500);
-	bigint_set_limb(&b, 795275);
-	int r = bigint_mul(&c, &a, &b);
+	uint8_t buf2[12] = {0};
+	//bigint_export_bytes(&c, buf2, 12, BIGINT_BIGENDIAN);
+
+	for (size_t i = 0; i < c.len; i++)
+		printf("%X ", c.limbs[i]);
+
 	int ch = getchar();
 	bigint_free(&a);
 	bigint_free(&b);

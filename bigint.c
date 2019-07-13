@@ -414,17 +414,17 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 {
 	int r;
 	size_t max = a->len, min = b->len;
-	size_t carry = 0, i;
+	bigint_limb carry = 0, i;
 
 	int max_sign = a->sign;
 	bigint_limb* maxlimbs = a->limbs;
 
 	if (a->len < b->len)
 	{
-		max_sign = b->sign;
-		maxlimbs = b->limbs;
 		max = b->len;
 		min = a->len;
+		max_sign = b->sign;
+		maxlimbs = b->limbs;
 	}
 
 	if ((r = bigint_alloc(c, max + 1)) < 0)
@@ -441,11 +441,17 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 	}
 
 	c->len = min;
-
-	while (carry)
+	
+	for(; i < max; i++)
 	{ 
 		cl[i] = maxlimbs[i] + carry;
-		carry = (cl[i++] < carry);
+		carry = (cl[i] < carry);
+		c->len++;
+	}
+
+	if (carry)
+	{
+		cl[max] = carry;
 		c->len++;
 	}
 
@@ -557,7 +563,7 @@ static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 
 	if (carry != 0)
 	{
-		c->limbs[j + i + 1] = carry;
+		c->limbs[j + i] = carry;
 		c->len++;
 	}
 	return BIGINT_SUCCESS;
