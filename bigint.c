@@ -488,7 +488,7 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	for (i = 0; i < min; i++)
 	{
 		cl[i] = maxlimbs[i] - minlimbs[i] - borrow;
-		borrow = (cl[i] > minlimbs[i]);
+		borrow = (cl[i] > maxlimbs[i]);
 	}
 
 	c->len = min;
