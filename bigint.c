@@ -485,13 +485,16 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	bigint_limb* bl = b->limbs;
 	bigint_limb* cl = c->limbs;
 
+	c->len = 0;
+
 	for (i = 0; i < min; i++)
 	{
 		cl[i] = maxlimbs[i] - minlimbs[i] - borrow;
 		borrow = (cl[i] > maxlimbs[i]);
-	}
 
-	c->len = min;
+		if (i == 0 || cl[i] != 0)
+			c->len++;
+	}
 
 	while (borrow)
 	{
