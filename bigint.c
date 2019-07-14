@@ -469,7 +469,7 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	bigint_limb* maxlimbs = a->limbs;
 	bigint_limb* minlimbs = b->limbs;
 	
-	if (a->len < b->len)
+	if (bigint_cmp(a, b, 0) < 0)
 	{
 		max_sign = b->sign;
 		maxlimbs = b->limbs;
@@ -481,10 +481,7 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	if ((r = bigint_alloc(c, max)) < 0)
 		return r;
 
-	bigint_limb* al = a->limbs;
-	bigint_limb* bl = b->limbs;
 	bigint_limb* cl = c->limbs;
-
 	c->len = 0;
 
 	for (i = 0; i < min; i++)
@@ -532,7 +529,7 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 		if ((r = bigint_usub(c, a, b)) < 0)
 			return r;
 
-		if (a->len >= b->len)
+		if (bigint_cmp(a, b, 0) >= 0)
 			c->sign = a->sign;
 		else
 			c->sign = -(a->sign);
