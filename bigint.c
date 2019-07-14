@@ -496,8 +496,10 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	while (borrow)
 	{
 		cl[i] = maxlimbs[i] - borrow;
-		borrow = (cl[i++] > maxlimbs[i]);
-		c->len++;
+		borrow = (cl[i] > maxlimbs[i]);
+
+		if(cl[i++] != 0)
+		  c->len++;
 	}
 
 	c->sign = max_sign;
