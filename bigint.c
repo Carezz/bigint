@@ -413,35 +413,43 @@ int bigint_export_bytes(bigint* n, uint8_t* buf, size_t buflen, int format)
 static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 {
 	int r;
-	size_t max = a->len, min = b->len;
-	bigint_limb carry = 0, i;
+	size_t max, min;
+	size_t carry, i;
+	bigint_limb* maxlimbs, *minlimbs;
 
-	int max_sign = a->sign;
-	bigint_limb* maxlimbs = a->limbs;
+	if (a->len > b->len)
+	{
+		max = a->len;
+		min = b->len;
 
-	if (a->len < b->len)
+		maxlimbs = a->limbs;
+		minlimbs = b->limbs;
+
+		c->sign = a->sign;
+	}
+	else
 	{
 		max = b->len;
 		min = a->len;
-		max_sign = b->sign;
+
 		maxlimbs = b->limbs;
+		minlimbs = a->limbs;
+
+		c->sign = b->sign;
 	}
 
 	if ((r = bigint_alloc(c, max + 1)) < 0)
 		return r;
 
-	bigint_limb* al = a->limbs;
-	bigint_limb* bl = b->limbs;
 	bigint_limb* cl = c->limbs;
+	c->len = min;
 
-	for (i = 0; i < min; i++)
+	for (carry = 0, i = 0; i < min; i++)
 	{
-		cl[i] = al[i] + bl[i] + carry;
-		carry = (cl[i] < bl[i]);
+		cl[i] = maxlimbs[i] + minlimbs[i] + carry;
+		carry = (cl[i] < minlimbs[i]);
 	}
 
-	c->len = min;
-	
 	for(; i < max; i++)
 	{ 
 		cl[i] = maxlimbs[i] + carry;
@@ -455,38 +463,46 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 		c->len++;
 	}
 
-	c->sign = max_sign;
 	return BIGINT_SUCCESS;
 }
 
 static int bigint_usub(bigint* c, bigint* a, bigint* b)
 {
 	int r;
-	size_t max = a->len, min = b->len;
-	size_t borrow = 0, i;
-
-	int max_sign = a->sign;
-	bigint_limb* maxlimbs = a->limbs;
-	bigint_limb* minlimbs = b->limbs;
+	size_t max, min;
+	size_t borrow, i;
+	bigint_limb* maxlimbs, *minlimbs;
 	
-	if (bigint_cmp(a, b, 0) < 0)
+	if (bigint_cmp(a, b, 0) > 0)
 	{
-		max_sign = b->sign;
-		maxlimbs = b->limbs;
-		minlimbs = a->limbs;
+		max = a->len;
+		min = b->len;
+
+		maxlimbs = a->limbs;
+		minlimbs = b->limbs;
+
+		c->sign = b->sign;
+	}
+	else
+	{
 		max = b->len;
 		min = a->len;
+
+		maxlimbs = b->limbs;
+		minlimbs = a->limbs;
+
+		c->sign = a->sign;
 	}
 
-	if (c != a  && (r = bigint_copy(c, a)) < 0)
+	if ((r = bigint_alloc(c, max)) < 0)
 		return r;
 
 	bigint_limb* cl = c->limbs;
 	c->len = max;
 
-	for (i = 0; i < min; i++)
+	for (borrow = 0, i = 0; i < min; i++)
 	{
-		cl[i] -= minlimbs[i] - borrow;
+		cl[i] = maxlimbs[i] - minlimbs[i] - borrow;
 		borrow = (cl[i] > maxlimbs[i]);
 	}
 
@@ -499,7 +515,6 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 		  c->len--;
 	}
 
-	c->sign = max_sign;
 	return BIGINT_SUCCESS;
 }
 
