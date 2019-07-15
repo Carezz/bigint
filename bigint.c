@@ -424,8 +424,6 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 
 		maxlimbs = a->limbs;
 		minlimbs = b->limbs;
-
-		c->sign = a->sign;
 	}
 	else
 	{
@@ -434,8 +432,6 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 
 		maxlimbs = b->limbs;
 		minlimbs = a->limbs;
-
-		c->sign = b->sign;
 	}
 
 	if ((r = bigint_alloc(c, max + 1)) < 0)
@@ -447,7 +443,7 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 	for (carry = 0, i = 0; i < min; i++)
 	{
 		cl[i] = maxlimbs[i] + minlimbs[i] + carry;
-		carry = (cl[i] < minlimbs[i]);
+		carry = (cl[i] < maxlimbs[i]);
 	}
 
 	for(; i < max; i++)
@@ -473,15 +469,13 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	size_t borrow, i;
 	bigint_limb* maxlimbs, *minlimbs;
 	
-	if (bigint_cmp(a, b, 0) > 0)
+	if (a->len > b->len)
 	{
 		max = a->len;
 		min = b->len;
 
 		maxlimbs = a->limbs;
 		minlimbs = b->limbs;
-
-		c->sign = b->sign;
 	}
 	else
 	{
@@ -490,8 +484,6 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 
 		maxlimbs = b->limbs;
 		minlimbs = a->limbs;
-
-		c->sign = a->sign;
 	}
 
 	if ((r = bigint_alloc(c, max)) < 0)
@@ -506,7 +498,7 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 		borrow = (cl[i] > maxlimbs[i]);
 	}
 
-	while (borrow)
+	for (; i < max; i++) 
 	{
 		cl[i] = maxlimbs[i] - borrow;
 		borrow = (cl[i] > maxlimbs[i]);
@@ -524,8 +516,16 @@ int bigint_add(bigint* c, bigint* a, bigint* b)
 		return BIGINT_ERR_INVALID_ARGS;
 
 	if (a->sign != b->sign)
-		return bigint_usub(c, a, b);
+	{
+		if (bigint_cmp(a, b, 0) > 0)
+			c->sign = a->sign;
+		else
+			c->sign = b->sign;
 
+		return bigint_usub(c, a, b);
+	}
+
+	c->sign = a->sign;
 	return bigint_uadd(c, a, b);
 }
 
@@ -534,21 +534,17 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 	if (c == NULL || a == NULL || b == NULL)
 		return BIGINT_ERR_INVALID_ARGS;
 
-	int r;
-
 	if (a->sign == b->sign)
 	{
-		if ((r = bigint_usub(c, a, b)) < 0)
-			return r;
-
 		if (bigint_cmp(a, b, 0) >= 0)
 			c->sign = a->sign;
 		else
 			c->sign = -(a->sign);
 
-		return BIGINT_SUCCESS;
+		return bigint_usub(c, a, b);
 	}
 
+	c->sign = a->sign;
 	return bigint_uadd(c, a, b);
 }
 
