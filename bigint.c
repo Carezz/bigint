@@ -57,7 +57,7 @@ int bigint_alloc(bigint* n, size_t limbs)
 
 	if (n->len > 0 && n->limbs != NULL)
 	{
-		memcpy(new_limbs, n->limbs, n->len);
+		memcpy(new_limbs, n->limbs, n->len * BIL);
 		bigint_secure_memset(n->limbs, n->len);
 		free(n->limbs);
 	}
@@ -415,40 +415,44 @@ static int bigint_uadd(bigint* c, bigint* a, bigint* b)
 	int r;
 	size_t max, min;
 	size_t carry, i;
-	bigint_limb* maxlimbs, *minlimbs;
+	bigint* maxlimbs, *minlimbs;
 
 	if (a->len > b->len)
 	{
 		max = a->len;
 		min = b->len;
 
-		maxlimbs = a->limbs;
-		minlimbs = b->limbs;
+		maxlimbs = a;
+		minlimbs = b;
 	}
 	else
 	{
 		max = b->len;
 		min = a->len;
 
-		maxlimbs = b->limbs;
-		minlimbs = a->limbs;
+		maxlimbs = b;
+		minlimbs = a;
 	}
 
 	if ((r = bigint_alloc(c, max + 1)) < 0)
 		return r;
 
+	bigint_limb* al = maxlimbs->limbs;
+	bigint_limb* bl = minlimbs->limbs;
 	bigint_limb* cl = c->limbs;
 	c->len = min;
 
 	for (carry = 0, i = 0; i < min; i++)
 	{
-		cl[i] = maxlimbs[i] + minlimbs[i] + carry;
-		carry = (cl[i] < maxlimbs[i]);
+		bigint_limb result;
+		result = al[i] + bl[i] + carry;
+		carry = (carry && result == al[i]) || (result < al[i]);
+		cl[i] = result;
 	}
 
 	for(; i < max; i++)
 	{ 
-		cl[i] = maxlimbs[i] + carry;
+		cl[i] = al[i] + carry;
 		carry = (cl[i] < carry);
 		c->len++;
 	}
@@ -467,41 +471,45 @@ static int bigint_usub(bigint* c, bigint* a, bigint* b)
 	int r;
 	size_t max, min;
 	size_t borrow, i;
-	bigint_limb* maxlimbs, *minlimbs;
+	bigint* maxlimbs, *minlimbs;
 	
 	if (a->len > b->len)
 	{
 		max = a->len;
 		min = b->len;
 
-		maxlimbs = a->limbs;
-		minlimbs = b->limbs;
+		maxlimbs = a;
+		minlimbs = b;
 	}
 	else
 	{
 		max = b->len;
 		min = a->len;
 
-		maxlimbs = b->limbs;
-		minlimbs = a->limbs;
+		maxlimbs = b;
+		minlimbs = a;
 	}
 
 	if ((r = bigint_alloc(c, max)) < 0)
 		return r;
 
+	bigint_limb* al = maxlimbs->limbs;
+	bigint_limb* bl = minlimbs->limbs;
 	bigint_limb* cl = c->limbs;
 	c->len = max;
 
 	for (borrow = 0, i = 0; i < min; i++)
 	{
-		cl[i] = maxlimbs[i] - minlimbs[i] - borrow;
-		borrow = (cl[i] > maxlimbs[i]);
+		bigint_limb result;
+		result = al[i] - bl[i] - borrow;
+		borrow = (borrow && (result == al[i])) || (result > al[i]);
+		cl[i] = result;
 	}
 
 	for (; i < max; i++) 
 	{
-		cl[i] = maxlimbs[i] - borrow;
-		borrow = (cl[i] > maxlimbs[i]);
+		cl[i] = al[i] - borrow;
+		borrow = (cl[i] > al[i]);
 
 		if(cl[i++] == 0)
 		  c->len--;
