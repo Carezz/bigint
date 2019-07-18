@@ -557,58 +557,70 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 }
 
 
-static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
+static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 {
-	bigint_limb carry = 0;
 	size_t i, j;
 
 	for (i = 0; i < a->len; i++)
 	{
+		bigint_limb carry;
 		bigint_limb* al = a->limbs;
 		bigint_limb* bl = b->limbs;
 		bigint_limb* cl = c->limbs;
 
-		for (j = 0; j < b->len; j++)
+		for (carry = 0, j = 0; j < b->len; j++)
 		{
 			bigint_double result;
-
-			result = ((bigint_double)al[i] * bl[j]) + carry;
+			result = cl[j + i] + ((bigint_double)al[i] * bl[j]) + carry;
+			cl[j + i] = (bigint_limb)result;
 			carry = result >> BiIL;
-			cl[j + i] += (bigint_limb)result;
-			c->len++;
 		}
-	}
 
-	if (carry != 0)
-	{
 		c->limbs[j + i] = carry;
-		c->len++;
 	}
-	return BIGINT_SUCCESS;
 }
 
 static int bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
 {
 	// to do...
 	return BIGINT_SUCCESS;
-}
+} 
 int bigint_mul(bigint* c, bigint* a, bigint* b)
 {
 	if (c == NULL || a == NULL || b == NULL)
 		return BIGINT_ERR_INVALID_ARGS;
 
 	int r;
+	size_t ath, bth, len;
+	bigint temp;
 
-	if ((r = bigint_alloc(c, a->len + b->len)) < 0)
+	bigint_init(&temp);
+	ath = a->len * BiIL;
+	bth = b->len * BiIL;
+
+	if ((r = bigint_alloc(&temp, a->len + b->len)) < 0)
 		return r;
 
-	if ((a->len * BiIL) > BIGINT_KARATSUBA_THRESHOLD
-	 || (b->len * BiIL) > BIGINT_KARATSUBA_THRESHOLD)
-		r = bigint_karatsuba_mul(c, a, b);
-	else
-		r = bigint_longhand_mul(c, a, b);
+	// Comba here..
+
+	if (ath > BIGINT_KARATSUBA_THRESHOLD || bth > BIGINT_KARATSUBA_THRESHOLD)
+		r = bigint_karatsuba_mul(&temp, a, b);
+
+	// Toom-Cook here..
+
+	bigint_longhand_mul(&temp, a, b);
+
+	for (len = 0; len < temp.alloc; len++)
+		if (temp.limbs[(temp.alloc - 1) - len] != 0)
+			break;
+
+	temp.len = (temp.alloc - 1) - len;
+
+	if ((r = bigint_copy(c, &temp)) < 0)
+		return r;
 
 	c->sign = a->sign * b->sign;
+	bigint_free(&temp);
 	return r;
 }
 
