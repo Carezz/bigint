@@ -559,6 +559,9 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 
 static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 {
+	if (c->alloc < )
+		return bigint_comba_mul(c, a, b);
+
 	size_t i, j;
 
 	for (i = 0; i < a->len; i++)
