@@ -43,6 +43,10 @@ typedef uint64_t bigint_double;
 /* Constant-time MUX macro */
 #define MUX(c, a, b) (((a ^ b) & (~bit ^ 1)) ^ a)
 
+/* Constant-time MIN/MAX macros */
+#define MIN(a, b) (MUX((a < b), a, b))
+#define MAX(a, b) (MUX((a > b), a, b))
+
 typedef struct
 {
 	int sign;

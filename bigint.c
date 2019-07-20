@@ -611,8 +611,6 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 	if ((r = bigint_alloc(&temp, res)) < 0)
 		return r;
 
-	// Comba here..
-
 	if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)
 		r = bigint_karatsuba_mul(&temp, a, b);
 
