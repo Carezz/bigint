@@ -580,30 +580,40 @@ static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 	}
 }
 
+static int bigint_comba_mul(bigint* c, bigint* a, bigint* b)
+{
+
+}
+
 static int bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
 {
 	// to do...
 	return BIGINT_SUCCESS;
 } 
+
+static int bigint_toomcook_mul(bigint* c, bigint* a, bigint* b)
+{
+
+}
+
 int bigint_mul(bigint* c, bigint* a, bigint* b)
 {
 	if (c == NULL || a == NULL || b == NULL)
 		return BIGINT_ERR_INVALID_ARGS;
 
 	int r;
-	size_t ath, bth, len;
+	size_t res, len;
 	bigint temp;
 
 	bigint_init(&temp);
-	ath = a->len * BiIL;
-	bth = b->len * BiIL;
+	res = a->len + b->len;
 
-	if ((r = bigint_alloc(&temp, a->len + b->len)) < 0)
+	if ((r = bigint_alloc(&temp, res)) < 0)
 		return r;
 
 	// Comba here..
 
-	if (ath > BIGINT_KARATSUBA_THRESHOLD || bth > BIGINT_KARATSUBA_THRESHOLD)
+	if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)
 		r = bigint_karatsuba_mul(&temp, a, b);
 
 	// Toom-Cook here..
