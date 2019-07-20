@@ -559,7 +559,7 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 
 static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 {
-	if (c->alloc < )
+	if ((c->alloc * BiIL) < BIGINT_COMBA_THRESHOLD)
 		return bigint_comba_mul(c, a, b);
 
 	size_t i, j;
@@ -616,8 +616,8 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 
 	if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)
 		r = bigint_karatsuba_mul(&temp, a, b);
-
-	// Toom-Cook here..
+	else if ((res * BiIL) >= BIGINT_TOOMCOOK_THRESHOLD)
+		r = bigint_toomcook_mul(&temp, a, b);
 
 	bigint_longhand_mul(&temp, a, b);
 
