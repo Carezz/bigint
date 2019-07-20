@@ -40,6 +40,9 @@ typedef uint64_t bigint_double;
 /* Converts a number of bytes to a number of limbs */
 #define BTOL(x) (((x) / BIL) + ((x) % BIL != 0))
 
+/* Constant-time MUX macro */
+#define MUX(c, a, b) (((a ^ b) & (~bit ^ 1)) ^ a)
+
 typedef struct
 {
 	int sign;
