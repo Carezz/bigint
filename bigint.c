@@ -583,18 +583,17 @@ static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 	}
 }
 
-static int bigint_comba_mul(bigint* c, bigint* a, bigint* b)
+static void bigint_comba_mul(bigint* c, bigint* a, bigint* b)
 {
 
 }
 
-static int bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
+static void bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
 {
-	// to do...
-	return BIGINT_SUCCESS;
+	
 } 
 
-static int bigint_toomcook_mul(bigint* c, bigint* a, bigint* b)
+static void bigint_toomcook_mul(bigint* c, bigint* a, bigint* b)
 {
 
 }
@@ -614,12 +613,12 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 	if ((r = bigint_alloc(&temp, res)) < 0)
 		return r;
 
-	if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)
-		r = bigint_karatsuba_mul(&temp, a, b);
-	else if ((res * BiIL) >= BIGINT_TOOMCOOK_THRESHOLD)
-		r = bigint_toomcook_mul(&temp, a, b);
-
-	bigint_longhand_mul(&temp, a, b);
+	if ((res * BiIL) >= BIGINT_TOOMCOOK_THRESHOLD)
+	    bigint_toomcook_mul(&temp, a, b);
+	else if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)
+		bigint_karatsuba_mul(&temp, a, b);
+	else
+		bigint_longhand_mul(&temp, a, b);
 
 	for (len = 0; len < temp.alloc; len++)
 		if (temp.limbs[(temp.alloc - 1) - len] != 0)
