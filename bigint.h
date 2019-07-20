@@ -25,9 +25,9 @@ typedef uint64_t bigint_double;
 #define BIGINT_BIGENDIAN 1
 #define BIGINT_LITTLEENDIAN 0 
 
-/* Algorithm-specific */
-#define BIGINT_KARATSUBA_THRESHOLD 1024 // measured in bits
-#define BIGINT_COMBA_THRESHOLD 257 // measured in limbs
+/* Algorithm-specific (measured in bits) */
+#define BIGINT_KARATSUBA_THRESHOLD 2048 
+#define BIGINT_COMBA_THRESHOLD 512
 
 /* Bytes in a limb */
 #define BIL (sizeof(bigint_limb))
