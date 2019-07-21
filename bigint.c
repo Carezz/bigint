@@ -728,6 +728,8 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 	return r;
 }
 
+
+
 int bigint_sqr(bigint* c, bigint* a, bigint* b)
 {
 	return BIGINT_SUCCESS;
