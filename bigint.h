@@ -50,14 +50,6 @@ typedef uint64_t bigint_double;
 #define MIN(a, b) (MUX((a < b), a, b))
 #define MAX(a, b) (MUX((a > b), a, b))
 
-/* Limb copying macro 
-   
-   a - Destination
-   b - Source
-   n - count to copy
-*/
-#define COPY_LIMBS(a, b, n) ( for (size_t i = 0; i < n; i++) a[i] = b[i]; )
-
 typedef struct
 {
 	int sign;
