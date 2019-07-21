@@ -558,7 +558,7 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 }
 
 
-static void bigint_comba_mul(bigint* c, bigint* a, bigint* b)
+static int bigint_comba_mul(bigint* c, bigint* a, bigint* b)
 {
 
 }
@@ -574,12 +574,6 @@ static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 
 	if ((r = bigint_alloc(&temp, res)) < 0)
 		return r;
-
-	/*if ((c->alloc * BiIL) < BIGINT_COMBA_THRESHOLD)
-	{
-		bigint_comba_mul(&temp, a, b);
-		goto DONE;
-	}*/
 
 	for (i = 0; i < a->len; i++)
 	{
@@ -598,7 +592,6 @@ static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 
 		temp.limbs[j + i] = carry;
 	}
-//DONE:
 
 	for (len = 0; len < temp.alloc; len++)
 		if (temp.limbs[(temp.alloc - 1) - len] != 0)
@@ -705,7 +698,7 @@ static int bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
 
 static int bigint_toomcook_mul(bigint* c, bigint* a, bigint* b)
 {
-	int r;
+	//int r;
 	return BIGINT_SUCCESS;
 }
 
@@ -715,14 +708,18 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 		return BIGINT_ERR_INVALID_ARGS;
 
 	int r;
-	size_t res;
+	size_t cutoff;
 
-	/*if ((res * BiIL) >= BIGINT_TOOMCOOK_THRESHOLD)
-	    r = bigint_toomcook_mul(c, a, b);
-	else if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)*/
+	cutoff = MIN(a->len, b->len);
+
+	if (cutoff >= BIGINT_TOOMCOOK_THRESHOLD)
+		r = bigint_toomcook_mul(c, a, b);
+	else if (cutoff >= BIGINT_KARATSUBA_THRESHOLD)
 		r = bigint_karatsuba_mul(c, a, b);
-	/*else*/
-		//r = bigint_longhand_mul(c, a, b);
+	else if (cutoff >= BIGINT_COMBA_THRESHOLD)
+		r = bigint_longhand_mul(c, a, b);
+	else
+	    r = bigint_comba_mul(c, a, b);
 
 	c->sign = a->sign * b->sign;
 	return r;
