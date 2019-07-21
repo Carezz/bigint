@@ -1,6 +1,7 @@
 #include<stdint.h>
 #include<string.h>
 #include<stdlib.h>
+#include<stdio.h>
 
 #include "bigint_conf.h"
 
@@ -37,17 +38,25 @@ typedef uint64_t bigint_double;
 #define BiIL (BIL << 3)
 
 /* Converts a number of bits to a number of limbs */
-#define BiTOL(x) (((x) / biIL) + ((x) % BiIL != 0))
+#define BiTOL(x) (((x) / BiIL) + ((x) % BiIL != 0))
 
 /* Converts a number of bytes to a number of limbs */
 #define BTOL(x) (((x) / BIL) + ((x) % BIL != 0))
 
 /* Constant-time MUX macro */
-#define MUX(c, a, b) (((a ^ b) & (~bit ^ 1)) ^ a)
+#define MUX(bit, a, b) (((a ^ b) & (~bit ^ 1)) ^ a)
 
 /* Constant-time MIN/MAX macros */
 #define MIN(a, b) (MUX((a < b), a, b))
 #define MAX(a, b) (MUX((a > b), a, b))
+
+/* Limb copying macro 
+   
+   a - Destination
+   b - Source
+   n - count to copy
+*/
+#define COPY_LIMBS(a, b, n) ( for (size_t i = 0; i < n; i++) a[i] = b[i]; )
 
 typedef struct
 {

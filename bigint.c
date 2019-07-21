@@ -300,12 +300,13 @@ int bigint_lshift(bigint* n, size_t bits)
 	size_t nlimb = bits / BiIL;
 	size_t noff = bits % BiIL;
 	size_t nlimbs = n->len + nlimb;
+	size_t req_bits = bigint_bitlen(n) + bits;
 	bigint_limb c0 = 0, c1;
 
 	if (bits > BIGINT_MAX_LIMBS * BiIL)
 		return BIGINT_ERR_MAX_LIMBS_REACHED;
 
-	if ((n->alloc * BiIL) < bits && (r = bigint_alloc(n, nlimbs)) < 0)
+	if ((n->len * BiIL) < req_bits && (r = bigint_alloc(n, BiTOL(req_bits))) < 0)
 		return r;
 
 	if (nlimb > 0)
@@ -557,19 +558,35 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 }
 
 
-static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
+static void bigint_comba_mul(bigint* c, bigint* a, bigint* b)
 {
-	if ((c->alloc * BiIL) < BIGINT_COMBA_THRESHOLD)
-		return bigint_comba_mul(c, a, b);
 
-	size_t i, j;
+}
+
+static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
+{
+	int r;
+	size_t i, j, res, len;
+	bigint temp;
+
+	bigint_init(&temp);
+	res = a->len + b->len;
+
+	if ((r = bigint_alloc(&temp, res)) < 0)
+		return r;
+
+	/*if ((c->alloc * BiIL) < BIGINT_COMBA_THRESHOLD)
+	{
+		bigint_comba_mul(&temp, a, b);
+		goto DONE;
+	}*/
 
 	for (i = 0; i < a->len; i++)
 	{
 		bigint_limb carry;
 		bigint_limb* al = a->limbs;
 		bigint_limb* bl = b->limbs;
-		bigint_limb* cl = c->limbs;
+		bigint_limb* cl = temp.limbs;
 
 		for (carry = 0, j = 0; j < b->len; j++)
 		{
@@ -579,23 +596,117 @@ static void bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
 			carry = result >> BiIL;
 		}
 
-		c->limbs[j + i] = carry;
+		temp.limbs[j + i] = carry;
 	}
+//DONE:
+
+	for (len = 0; len < temp.alloc; len++)
+		if (temp.limbs[(temp.alloc - 1) - len] != 0)
+			break;
+
+	temp.len = temp.alloc - len;
+
+	if ((r = bigint_copy(c, &temp)) < 0)
+		return r;
+
+	c->len = temp.len;
+	bigint_free(&temp);
+	return r;
 }
 
-static void bigint_comba_mul(bigint* c, bigint* a, bigint* b)
+static int bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
 {
+	int r;
+	size_t B, i;
+	bigint x0, x1, y0, y1, x0y0, x1y1, t0;
 
-}
+	bigint_init(&x0); bigint_init(&y0); bigint_init(&x1);
+	bigint_init(&y1); bigint_init(&x0y0); bigint_init(&x1y1);
+	bigint_init(&t0);
 
-static void bigint_karatsuba_mul(bigint* c, bigint* a, bigint* b)
-{
-	
+	B = MIN(a->len, b->len) / 2;
+
+	/* Allocate appropriate memory */
+	if ((r = bigint_alloc(&x0, B)) < 0)
+		return r;
+
+	if ((r = bigint_alloc(&x1, a->len - B)) < 0)
+		return r;
+
+	if ((r = bigint_alloc(&y0, B)) < 0)
+		return r;
+
+	if ((r = bigint_alloc(&y1, b->len - B)) < 0)
+		return r;
+
+	/* A = x0 + radix^B * x1. */
+	for (i = 0; i < B; i++)
+		x0.limbs[i] = a->limbs[i];
+
+	x0.len = B;
+
+	for (i = 0; i < a->len - B; i++)
+		x1.limbs[i] = a->limbs[i + B];
+
+	x1.len = a->len - B;
+	/* End A */
+
+	/* B = y0 + radix^B * y1. */
+	for (i = 0; i < B; i++)
+		y0.limbs[i] = b->limbs[i];
+
+	y0.len = B;
+
+	for (i = 0; i < b->len - B; i++)
+		y1.limbs[i] = b->limbs[i + B];
+
+	y1.len = b->len - B;
+	/* End B */
+
+	if((r = bigint_longhand_mul(&x0y0, &x0, &y0)) < 0)
+		return r;
+
+	if ((r = bigint_longhand_mul(&x1y1, &x1, &y1)) < 0)
+		return r;
+
+	if ((r = bigint_add(&t0, &x0, &x1)) < 0)
+		return r;
+
+	if ((r = bigint_add(&x0, &y0, &y1)) < 0)
+		return r;
+
+	if ((r = bigint_longhand_mul(&t0, &t0, &x0)) < 0)
+		return r;
+
+	if ((r = bigint_add(&x0, &x0y0, &x1y1)) < 0)
+		return r;
+
+	if ((r = bigint_sub(&t0, &t0, &x0)) < 0)
+		return r;
+
+	/* reconstruct */
+	if ((r = bigint_lshift(&t0, B * BiIL)) < 0)
+		return r;
+
+	if ((r = bigint_lshift(&x1y1, 2 * B * BiIL)) < 0)
+		return r;
+
+	if ((r = bigint_add(&t0, &t0, &x0y0)) < 0)
+		return r;
+
+	if ((r = bigint_add(c, &t0, &x1y1)) < 0)
+		return r;
+
+	bigint_free(&x0); bigint_free(&y0); bigint_free(&x1);
+	bigint_free(&y1); bigint_free(&x0y0); bigint_free(&x1y1);
+	bigint_free(&t0);
+	return r;
 } 
 
-static void bigint_toomcook_mul(bigint* c, bigint* a, bigint* b)
+static int bigint_toomcook_mul(bigint* c, bigint* a, bigint* b)
 {
-
+	int r;
+	return BIGINT_SUCCESS;
 }
 
 int bigint_mul(bigint* c, bigint* a, bigint* b)
@@ -604,33 +715,16 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 		return BIGINT_ERR_INVALID_ARGS;
 
 	int r;
-	size_t res, len;
-	bigint temp;
+	size_t res;
 
-	bigint_init(&temp);
-	res = a->len + b->len;
-
-	if ((r = bigint_alloc(&temp, res)) < 0)
-		return r;
-
-	if ((res * BiIL) >= BIGINT_TOOMCOOK_THRESHOLD)
-	    bigint_toomcook_mul(&temp, a, b);
-	else if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)
-		bigint_karatsuba_mul(&temp, a, b);
-	else
-		bigint_longhand_mul(&temp, a, b);
-
-	for (len = 0; len < temp.alloc; len++)
-		if (temp.limbs[(temp.alloc - 1) - len] != 0)
-			break;
-
-	temp.len = (temp.alloc - 1) - len;
-
-	if ((r = bigint_copy(c, &temp)) < 0)
-		return r;
+	/*if ((res * BiIL) >= BIGINT_TOOMCOOK_THRESHOLD)
+	    r = bigint_toomcook_mul(c, a, b);
+	else if ((res * BiIL) >= BIGINT_KARATSUBA_THRESHOLD)*/
+		r = bigint_karatsuba_mul(c, a, b);
+	/*else*/
+		//r = bigint_longhand_mul(c, a, b);
 
 	c->sign = a->sign * b->sign;
-	bigint_free(&temp);
 	return r;
 }
 
