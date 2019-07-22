@@ -560,7 +560,7 @@ int bigint_sub(bigint* c, bigint* a, bigint* b)
 
 static int bigint_comba_mul(bigint* c, bigint* a, bigint* b)
 {
-
+	return BIGINT_SUCCESS;
 }
 
 static int bigint_longhand_mul(bigint* c, bigint* a, bigint* b)
@@ -716,12 +716,14 @@ int bigint_mul(bigint* c, bigint* a, bigint* b)
 		r = bigint_toomcook_mul(c, a, b);
 	else if (cutoff >= BIGINT_KARATSUBA_THRESHOLD)
 		r = bigint_karatsuba_mul(c, a, b);
-	else if (cutoff >= BIGINT_COMBA_THRESHOLD)
+	else if (cutoff >= BIGINT_LONGHAND_THRESHOLD)
 		r = bigint_longhand_mul(c, a, b);
 	else
 	    r = bigint_comba_mul(c, a, b);
 
-	c->sign = a->sign * b->sign;
+	if(r > 0)
+		c->sign = a->sign * b->sign;
+
 	return r;
 }
 

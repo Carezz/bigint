@@ -1,14 +1,15 @@
 #include<stdint.h>
 #include<string.h>
 #include<stdlib.h>
-#include<stdio.h>
 
 #include "bigint_conf.h"
 
+/* Limb data types */
 typedef uint32_t bigint_limb;
 typedef int32_t bigint_slimb;
 typedef uint64_t bigint_double;
 
+/* Success code */
 #define BIGINT_SUCCESS 1
 
 /* Errors */
@@ -26,24 +27,28 @@ typedef uint64_t bigint_double;
 #define BIGINT_BIGENDIAN 1
 #define BIGINT_LITTLEENDIAN 0 
 
-/* Algorithm-specific (measured in number of limbs) */
+/* Algorithm-specific cutoff points (measured in number of limbs) */
 #define BIGINT_TOOMCOOK_THRESHOLD 128 /* 4096-bits and up */
 #define BIGINT_KARATSUBA_THRESHOLD 64  /* 2048-bits and up */
-#define BIGINT_COMBA_THRESHOLD 16 /* 512-bits and up */
+#define BIGINT_LONGHAND_THRESHOLD 16 /* 512-bits and up */
 
-/* Bytes in a limb */
+/* Bytes in limb data types */
 #define BIL (sizeof(bigint_limb))
+#define BISL (sizeof(bigint_slimb))
+#define BIDL (sizeof(bigint_double))
 
-/* Bits in a limb */
+/* Bits in limb data types */
 #define BiIL (BIL << 3)
-
-/* Converts a number of bits to a number of limbs */
-#define BiTOL(x) (((x) / BiIL) + ((x) % BiIL != 0))
+#define BiISL (BISL << 3)
+#define BiIDL (BIDL << 3)
 
 /* Converts a number of bytes to a number of limbs */
 #define BTOL(x) (((x) / BIL) + ((x) % BIL != 0))
 
-/* Constant-time MUX macro */
+/* Converts a number of bits to a number of limbs */
+#define BiTOL(x) (((x) / BiIL) + ((x) % BiIL != 0))
+
+/* Constant-time Multiplexer macro */
 #define MUX(bit, a, b) (((a ^ b) & (~bit ^ 1)) ^ a)
 
 /* Constant-time MIN/MAX macros */
@@ -52,8 +57,20 @@ typedef uint64_t bigint_double;
 
 typedef struct
 {
+	/* 
+	   Sign of bigint 
+	   can only be 1 or -1.
+	*/
 	int sign;
+
+	/*
+	   Number of least-significant non-zero limbs.
+	*/
 	size_t len;
+
+	/*
+	  Number of available limbs allocated on memory.
+	*/
 	size_t alloc;
 
 #if defined(BIGINT_ALLOC)
@@ -122,6 +139,7 @@ int bigint_rshift(bigint* n, size_t bits);
 
 /*
   Import and export from/to bytes to/from bigint.
+  Supported formats: Big endian and little endian.
 */
 int bigint_import_bytes(bigint* n, uint8_t* buf, size_t buflen, int format);
 int bigint_export_bytes(bigint* n, uint8_t* buf, size_t buflen, int format);
